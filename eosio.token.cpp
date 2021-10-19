@@ -156,4 +156,26 @@ void token::close( const name& owner, const symbol& symbol )
    acnts.erase( it );
 }
 
+void token::setmaxsupply( const asset& maximum_supply )
+{
+    auto sym = maximum_supply.symbol;
+    check( sym.is_valid(), "invalid symbol name" );
+
+    stats statstable( get_self(), sym.code().raw() );
+    auto existing = statstable.find( sym.code().raw() );
+    check( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
+    const auto& st = *existing;
+
+    require_auth( st.issuer );
+
+    check( maximum_supply.is_valid(), "invalid maximum_supply" );
+    check( maximum_supply.symbol == st.supply.symbol, "symbol precision mismatch" );
+    check( maximum_supply.symbol == st.max_supply.symbol, "symbol precision mismatch" );
+    check( maximum_supply.amount >= st.supply.amount, "max_supply must greater than or equal to current supply" );
+
+    statstable.modify( st, same_payer, [&]( auto& s ) {
+        s.max_supply = maximum_supply;
+    });
+}
+
 } /// namespace eosio
